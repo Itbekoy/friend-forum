@@ -1,37 +1,42 @@
-// src/App.js
-import React, { useEffect, useState } from "react";
+// App.jsx or wherever your button is
+import { useEffect, useState } from "react";
 import { db } from "./firebase";
-import { ref, push, onValue } from "firebase/database";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 function App() {
-  const [dogwaterCount, setDogwaterCount] = useState(0);
+  const [count, setCount] = useState(0);
 
-  // Set up listener to count "dogwater" entries in the DB
+  // Load the counter from Firebase on first render
   useEffect(() => {
-    const messagesRef = ref(db, "test-messages/");
-    onValue(messagesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        setDogwaterCount(0);
-        return;
+    const fetchCounter = async () => {
+      const counterRef = doc(db, "counters", "coyCounter");
+      const docSnap = await getDoc(counterRef);
+
+      if (docSnap.exists()) {
+        setCount(docSnap.data().value);
+      } else {
+        // If no counter yet, set to 0
+        await setDoc(counterRef, { value: 0 });
       }
-      const values = Object.values(data);
-      const count = values.filter((msg) => msg === "dogwater").length;
-      setDogwaterCount(count);
-    });
+    };
+
+    fetchCounter();
   }, []);
 
-  // Button click handler
-  const handleAddDogwater = () => {
-    const messagesRef = ref(db, "test-messages/");
-    push(messagesRef, "dogwater");
+  // Handle click and update Firebase
+  const handleClick = async () => {
+    const counterRef = doc(db, "counters", "coyCounter");
+    const newCount = count + 1;
+
+    await updateDoc(counterRef, { value: newCount });
+    setCount(newCount);
   };
 
   return (
-    <div style={{ padding: 32 }}>
-      <h1>Dogwater Counter Test 🐶💦</h1>
-      <button onClick={handleAddDogwater}>Add Dogwater</button>
-      <p>Total Dogwaters: {dogwaterCount}</p>
+    <div className="App">
+      <h1>COY Counter</h1>
+      <p>You've clicked {count} times</p>
+      <button onClick={handleClick}>Click Me</button>
     </div>
   );
 }
